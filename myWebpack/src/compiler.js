@@ -53,7 +53,7 @@ class Compiler {
     // this.hooks.beforeRun.callAsync(this)
 
     const compilation = new Compilation({
-      entry: this.entry,
+      entryPath: this.entryPath,
       rootPath: this.rootPath,
       optputDir: this.optputDir,
       outputFileName: this.outputFileName,
