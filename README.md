@@ -1,1 +1,1 @@
-# 实现一个简单的 webpack
+# 实现一个简版 webpack

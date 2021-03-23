@@ -9,7 +9,7 @@ class Compiler {
     // 入口文件
     this.entryPath = entry
     // 输出目录
-    this.optputDir = output.path
+    this.outputDir = output.path
     // 输出文件名
     this.outputFileName = output.fileName
     // loader
@@ -47,15 +47,15 @@ class Compiler {
     /**
      * 每一个 plugin Class 都必须实现一个 apply 方法
      * 这个方法接收 compiler 实例，然后将真正的钩子函数挂载到 compiler.hook 的某一个声明周期上
-     * 如果我们声明了一个hook但是没有挂载任何方法，在 call 函数触发的时候是会报错的
+     * 如果我们声明了一个 hook 但是没有挂载任何方法，在 call 函数触发的时候是会报错的
      * 但是实际上 Webpack 的每一个生命周期钩子除了挂载用户配置的 plugin ,都会挂载至少一个 Webpack 自己的 plugin，所以不会有这样的问题
      */
-    // this.hooks.beforeRun.callAsync(this)
+    this.hooks.beforeRun.callAsync(this)
 
     const compilation = new Compilation({
       entryPath: this.entryPath,
       rootPath: this.rootPath,
-      optputDir: this.optputDir,
+      outputDir: this.outputDir,
       outputFileName: this.outputFileName,
       loaders: this.loaders,
       hooks: this.hooks

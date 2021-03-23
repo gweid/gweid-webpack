@@ -3,6 +3,14 @@ const { resolve } = require('path')
 const crypto = require('crypto')
 
 /**
+ * 判断数据类型
+ * @param {*} source 
+ */
+const checkType = source => {
+  return Object.prototype.toString.call(source).slice(8, -1)
+}
+
+/**
  * 检验 webpack 初始参数
  * @param {*} options 
  */
@@ -22,7 +30,7 @@ const normalizeOption = options => {
   }
 
   if (!options) return config
-  if (Object.prototype.toString.call(options).slice(8, -1) === 'Object') {
+  if (checkType(options) === 'Object') {
     return { ...config, ...options }
   }
 }
@@ -75,7 +83,10 @@ const readFileWithHash = path => new Promise((resolve, reject) => {
   })
 })
 
+
+
 module.exports = {
+  checkType,
   normalizeOption,
   getCompleteFilePath,
   readFileWithHash
