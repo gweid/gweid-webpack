@@ -77,7 +77,6 @@ class Compilation {
         } else if (checkType(use.loader) === 'String') {
           // use 类型二：use: { loader: 'babel-loader', options: {} }
           const loaderFun = require(use.loader)
-          console.log(loaderFun(content))
           content = loaderFun(content)
 
         } else if (checkType(use) === 'Array') {
@@ -123,7 +122,7 @@ class Compilation {
     // 遍历 ast
     traverse(ast, {
       CallExpression(p) {
-        console.log(p.node)
+        
       }
     })
 
