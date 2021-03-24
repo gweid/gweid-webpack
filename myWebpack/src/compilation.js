@@ -7,7 +7,6 @@ const types = require('@babel/types')
 const generator = require('@babel/generator').default
 
 const { checkType, getCompleteFilePath, readFileWithHash, getRootPath } = require('./utils')
-const { parse } = require('path')
 
 class Compilation {
   constructor(options) {
