@@ -6,7 +6,7 @@ const traverse = require('@babel/traverse').default
 const types = require('@babel/types')
 const generator = require('@babel/generator').default
 
-const { checkType, getCompleteFilePath, readFileWithHash } = require('./utils')
+const { checkType, getCompleteFilePath, readFileWithHash, getRootPath } = require('./utils')
 const { parse } = require('path')
 
 class Compilation {
@@ -19,6 +19,8 @@ class Compilation {
     this.outputFileName = outputFileName
     this.loaders = loaders
     this.hooks = hooks
+
+    this.assets = {}
   }
 
   // 存放处理完毕的模块代码 Map
@@ -49,13 +51,24 @@ class Compilation {
     // 获取带 .js 结尾的路径
     sourcePath = getCompleteFilePath(sourcePath)
     //
+    const modulePath = getRootPath(this.rootPath, sourcePath, this.rootPath)
 
     // 编译一：使用所有满足条件的 loader 对模块进行编译，并返回编译后的代码和文件的 md5 哈希（用于缓存）
     const [sourceCode, md5Hash] = await this.loaderParse(sourcePath)
 
     // 编译二：将所有模块中的 require 或者 import 方法的函数名称替换成 __webpack_require__
-    const [moduleCode, relyModule] = this.parse(sourceCode)
+    const [moduleCode, relyModule] = this.parse(sourceCode, path.dirname(modulePath))
 
+    // 将模块代码放进 moduleMap
+    this.moduleMap[modulePath] = moduleCode
+    this.assets[modulePath] = md5Hash
+
+    // 递归处理模块依赖
+    if (relyModule.length) {
+      for(let i = 0; i < relyModule.length; i++) {
+        await this.walker(relyModule[i])
+      }
+    }
   }
 
   async loaderParse(path) {
@@ -100,14 +113,18 @@ class Compilation {
   }
 
   /**
-   * 将所有模块中的 require 或者 import 方法的函数名称替换成 __webpack_require__
-   *    1、@babel/parse 将源码解析成 ast
-   *    2、@bebal/traverse 遍历词法节点
-   *    3、@babel/types 生成一个参数不变，函数名为 __webpack_require__ 的 babel 节点，替换原有节点
-   *    4、@babel/generator 将更改后的 ast 还原出代码字符串
+   * 将所有模块中的 require 方法的函数名称替换成 __webpack_require__
+   *    1、先使用 babel 支持 es6 的 import，将 import 的转换为 require
+   *    2、@babel/parse 将源码解析成 ast
+   *    3、@bebal/traverse 遍历词法节点
+   *    4、@babel/types 生成一个参数不变，函数名为 __webpack_require__ 的 babel 节点，替换原有节点
+   *    5、@babel/generator 将更改后的 ast 还原出代码字符串
    */
-  parse(source) {
-    const relyModule = [] // 当前文件所依赖的所有模块
+  parse(source, dirPath) {
+    const _this = this
+
+    // 当前文件所依赖的所有模块
+    const relyModule = []
 
     // 这里要注意，直接使用 parser.parse 是不支持 es6 的 import 和 export 语法的
     // 所以需要先使用 babel.transform 将 import 转换为 require
@@ -121,12 +138,42 @@ class Compilation {
 
     // 遍历 ast
     traverse(ast, {
+      // 遍历 ast，当遇到函数调用表达式的时候执行，对 ast 树进行改写
       CallExpression(p) {
-        
+        if (p.node.callee && p.node.callee.name === '_interopRequireDefault') {
+          // 有些 require 是在 _interopRequireDefault 内
+          const node = p.node.arguments[0]
+          if (node.callee.name === 'require') {
+            _this.transformNode(node, dirPath, relyModule)
+          }
+        } else if (p.node.callee.name === 'require') {
+          _this.transformNode(p.node, dirPath, relyModule)
+        }
       }
     })
 
-    return [relyModule]
+    // 将改写后的 ast 重新组装成代码字符串
+    const moduleCode = generator(ast).code
+
+    return [moduleCode, relyModule]
+  }
+
+  // 将某个节点的 name 和 arguments 转换成想要的新节点
+  transformNode(node, dirPath, relyModule) {
+    node.callee.name = '__webpack_require__'
+    // console.log(node)
+    
+    // 获取依赖模块
+    const moduleName = node.arguments[0].value
+    // 生成依赖模块相对项目根目录的路径
+    const moduleKey = getCompleteFilePath(getRootPath(dirPath, moduleName, this.rootPath))
+    // 添加进 relyModule
+    relyModule.push(moduleKey)
+
+    // 替换 __webpack_require__ 的参数字符串，因为这个字符串也是对应模块的 moduleKey，需要保持统一
+    // 因为 ast 树中的每一个元素都是 babel 节点，所以需要使用 '@babel/types' 来进行生成
+    node.arguments = [types.stringLiteral(moduleKey)]
+    // console.log(node)
   }
 }
 

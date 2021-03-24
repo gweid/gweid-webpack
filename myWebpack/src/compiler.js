@@ -1,6 +1,10 @@
+const fs = require('fs')
+const path = require('path')
+const ejs = require('ejs')
 // wbepack 的生命周期依赖于 tapable 库，这个库可以很方便地帮助我们创建一个发布订阅模式的钩子，将钩子挂在到实例上，在合适的时机触发对应的函数处理
 const { AsyncSeriesHook } = require('tapable') // 使用 tapable 的 AsyncSeriesHook 创建异步钩子
 const Compilation = require('./compilation')
+const { getRootPath } = require('./utils')
 
 class Compiler {
   constructor(options) {
@@ -16,8 +20,12 @@ class Compiler {
     this.loaders = module.rules
     // plugins
     this.plugins = plugins
-    // 跟路径
+    // 根路径
     this.rootPath = process.cwd()
+    // 入口文件 id
+    this.entryId = getRootPath(this.rootPath, this.entryPath, this.rootPath)
+    // 用于存储 new Compilation
+    this.compilation = {}
 
     this.hooks = {
       // compiler 代表将向回调事件中传入一个 compiler 参数
@@ -52,7 +60,7 @@ class Compiler {
      */
     this.hooks.beforeRun.callAsync(this)
 
-    const compilation = new Compilation({
+    this.compilation = new Compilation({
       entryPath: this.entryPath,
       rootPath: this.rootPath,
       outputDir: this.outputDir,
@@ -61,7 +69,37 @@ class Compiler {
       hooks: this.hooks
     })
 
-    await compilation.make()
+    await this.compilation.make()
+
+    // 生成打包产物
+    this.createBuildFile()
+  }
+
+  // 生成打包后的 bundle.js 文件
+  createBuildFile() {
+    // 拼接文件输出路径
+    const outputFile = path.join(this.outputDir, this.outputFileName)
+    // 模板
+    const templateEjs = fs.readFileSync(path.join(__dirname, '../template.ejs'), 'utf-8')
+    // 渲染输出文件模板
+    const code = ejs.render(templateEjs, { entryId: this.entryId, modules: this.compilation.moduleMap })
+
+    function writeFile(outputFile, code) {
+      fs.writeFile(outputFile, code, (err) => {
+        if (err) {
+          console.log(`[Error] ${err}`)
+        } else {
+          console.log('[Ok] 编译成功')
+        }
+      })
+    }
+
+    if (fs.existsSync(this.outputDir)) {
+      writeFile(outputFile, code)
+    } else {
+      fs.mkdirSync(this.outputDir)
+      writeFile(outputFile, code)
+    }
   }
 }
 

@@ -10,16 +10,16 @@ module.exports = {
   },
   module: {
     rules: [
-      {
-        test: /\.js$/,
-        // 编译匹配 include 路径的文件
-        include: [
-          resolve('src')
-        ],
-        use: {
-          loader: resolve('loaders', 'MyTestLoader.js')
-        }
-      }
+      // {
+      //   test: /\.js$/,
+      //   // 编译匹配 include 路径的文件
+      //   include: [
+      //     resolve('src')
+      //   ],
+      //   use: {
+      //     loader: resolve('loaders', 'MyTestLoader.js')
+      //   }
+      // }
     ]
   },
   plugins: [

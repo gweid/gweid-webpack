@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { resolve } = require('path')
+const { resolve, relative, extname } = require('path')
 const crypto = require('crypto')
 
 /**
@@ -83,11 +83,24 @@ const readFileWithHash = path => new Promise((resolve, reject) => {
   })
 })
 
-
+/**
+ * 根据用户在代码中的引用生成相对根目录的相对路径
+ */
+const getRootPath = (dirPath, moduleName, rootPath) => {
+  if (/^[a-zA-Z\$_][a-zA-Z\d_]*/.test(moduleName)) {
+    // 如果模块名满足一个变量的正则，说明引用的是 node 模块
+    return './node_modules/' + moduleName
+  } else {
+    return './'
+    + relative(rootPath, resolve(dirPath, moduleName))
+    + (extname(moduleName).length === 0 ? '.js' : '')
+  }
+}
 
 module.exports = {
   checkType,
   normalizeOption,
   getCompleteFilePath,
-  readFileWithHash
+  readFileWithHash,
+  getRootPath
 }
