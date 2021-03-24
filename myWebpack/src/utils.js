@@ -11,31 +11,6 @@ const checkType = source => {
 }
 
 /**
- * 检验 webpack 初始参数
- * @param {*} options 
- */
-const normalizeOption = options => {
-  const config = {
-    // 入口文件地址
-    entry: './src/index.js',
-    // 输出文件地址
-    output: {
-      path: resolve(process.cwd(), 'dist'),
-      fileName: 'bundle.js'
-    },
-    module: {
-      rules: []
-    },
-    plugins: []
-  }
-
-  if (!options) return config
-  if (checkType(options) === 'Object') {
-    return { ...config, ...options }
-  }
-}
-
-/**
  * 获取完整的文件路径，包含 .js
  * @param {*} sourcePath 
  */
@@ -99,7 +74,6 @@ const getRootPath = (dirPath, moduleName, rootPath) => {
 
 module.exports = {
   checkType,
-  normalizeOption,
   getCompleteFilePath,
   readFileWithHash,
   getRootPath
