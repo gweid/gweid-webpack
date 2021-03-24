@@ -97,6 +97,7 @@ class Compiler {
     if (fs.existsSync(this.outputDir)) {
       writeFile(outputFile, code)
     } else {
+      // 输出文件夹不存在，先创建
       fs.mkdirSync(this.outputDir)
       writeFile(outputFile, code)
     }
