@@ -72,11 +72,11 @@ class Compiler {
     await this.compilation.make()
 
     // 生成打包产物
-    this.createBuildFile()
+    this.emitFiles()
   }
 
   // 生成打包后的 bundle.js 文件
-  createBuildFile() {
+  emitFiles() {
     // 拼接文件输出路径
     const outputFile = path.join(this.outputDir, this.outputFileName)
     // 模板
